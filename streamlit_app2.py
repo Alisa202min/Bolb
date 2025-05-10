@@ -1,3 +1,6 @@
+مشکل این است که الگوی منظم (title_pattern) در کد شما به درستی با فرمت متن ورودی که شامل بلوک‌های کد با توضیحات و بدون استفاده از برای مشخص کردن بلوک‌های کد است، مطابقت ندارد. متن ورودی شامل سربرگ‌هایی مانند `File 1: tests/conftest.py` و سپس نوع زبان (مثل `python`) و محتوای کد بدون استفاده از علامت است. بنابراین، باید الگوی منظم را اصلاح کنیم تا این ساختار را به درستی شناسایی کند.
+در زیر کد اصلاح‌شده ارائه شده است که الگوی منظم را برای تطبیق با ساختار متن ورودی به‌روزرسانی می‌کند. همچنین برخی بهبودهای دیگر برای اطمینان از پردازش صحیح انجام شده است.
+python
 import streamlit as st
 import re
 import os
@@ -24,7 +27,8 @@ def extract_code_files(input_text, output_dir="code_files"):
             os.makedirs(output_dir)
 
         # الگوی منظم برای تطبیق عنوان‌ها و بلوک‌های کد
-        title_pattern = r'File \d+: ([^\n]+)\n```(?:\w+)?\n([\s\S]*?)(?:\n```|\Z)'
+        # این الگو به دنبال "File X: path/to/file" و سپس نوع زبان و محتوای کد می‌گردد
+        title_pattern = r'File \d+: ([^\n]+)\n(\w+)\n([\s\S]*?)(?=\nFile \d+:|$|\nDownload:)'
         matches = re.finditer(title_pattern, input_text)
 
         files_created = []
@@ -32,7 +36,7 @@ def extract_code_files(input_text, output_dir="code_files"):
         # پردازش هر تطبیق
         for match in matches:
             file_path = match.group(1).strip()  # مثال: tests/conftest.py
-            code_content = match.group(2).strip()  # محتوای بلوک کد
+            code_content = match.group(3).strip()  # محتوای بلوک کد
 
             # ایجاد پوشه‌ها در صورت نیاز
             file_dir = os.path.dirname(file_path)
@@ -83,7 +87,7 @@ st.markdown('<div class="sub-header">متن یا فایل متنی حاوی بل
 tab1, tab2 = st.tabs(["متن را جای‌گذاری کنید", "فایل را آپلود کنید"])
 
 with tab1:
-    input_text = st.text_area("متن خود را اینجا جای‌گذاری کنید", height=300, help="مثال: File 1: tests/conftest.py\n```python\nکد...\n```")
+    input_text = st.text_area("متن خود را اینجا جای‌گذاری کنید", height=300, help="مثال: File 1: tests/conftest.py\npython\nکد...")
 
 with tab2:
     uploaded_file = st.file_uploader("یک فایل متنی (.txt) آپلود کنید", type=["txt"])
@@ -125,3 +129,4 @@ if st.button("تولید فایل ZIP"):
 # پاورقی
 st.markdown("---")
 st.markdown("ساخته‌شده با ❤️ با استفاده از Streamlit | برای تست RFCBot")
+تغییرات اصلی اعمال‌شده...
