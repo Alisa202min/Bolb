@@ -1,127 +1,51 @@
+در ادامه کدی برای یک اپلیکیشن ساده با استفاده از Streamlit آورده‌ام که کارهای زیر را انجام می‌دهد:
+
+1. گرفتن فایل متنی از کاربر.
+2. استخراج بلوک‌های کد (بر اساس قالب `...`).
+3. ذخیره هر بلوک کد در یک فایل مجزا.
+4. فشرده‌سازی فایل‌ها در قالب ZIP.
+5. ارائه فایل ZIP برای دانلود.
+
+ابتدا این پکیج‌ها را نصب کن (در صورت نیاز):
+
+```bash
+pip install streamlit
+```
+
+و سپس کد زیر را در فایلی مانند `app.py` قرار بده و با دستور `streamlit run app.py` اجرا کن:
+
+````python
 import streamlit as st
 import re
 import os
 import zipfile
-import shutil
-from pathlib import Path
+from io import BytesIO
 
-def extract_code_files(input_text, output_dir="code_files"):
-    """
-    استخراج کدهای برنامه از متن ورودی، ذخیره به صورت فایل با نام‌های مشخص‌شده در عنوان‌ها،
-    و ایجاد یک آرشیو ZIP از تمام فایل‌ها.
+st.title("استخراج کد از فایل متنی و بسته‌بندی ZIP")
+
+uploaded_file = st.file_uploader("لطفاً یک فایل متنی آپلود کنید", type=["txt", "md"])
+
+if uploaded_file is not None:
+    text = uploaded_file.read().decode("utf-8")
     
-    Args:
-        input_text (str): متن حاوی بلوک‌های کد با عنوان.
-        output_dir (str): پوشه موقت برای ذخیره فایل‌ها قبل از فشرده‌سازی.
-    
-    Returns:
-        tuple: (zip_path, files_created) که zip_path مسیر فایل ZIP و files_created لیست مسیرهای فایل‌هاست،
-               یا (None, []) در صورت عدم وجود فایل.
-    """
-    try:
-        # ایجاد پوشه خروجی در صورت عدم وجود
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+    # استخراج بلوک‌های کد بر اساس قالب Markdown
+    code_blocks = re.findall(r"```(?:[\w+]*\n)?(.*?)```", text, re.DOTALL)
 
-        # الگوی منظم بهبود‌یافته برای تطبیق عنوان‌ها و بلوک‌های کد
-        title_pattern = r'File \d+: ([^\n]+)\n(\w+)\n([\s\S]*?)(?=\n(?:File \d+:|Download:|\Z))'
-        matches = re.finditer(title_pattern, input_text)
+    if code_blocks:
+        zip_buffer = BytesIO()
 
-        files_created = []
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for i, code in enumerate(code_blocks):
+                file_name = f"code_block_{i+1}.py"
+                zipf.writestr(file_name, code.strip())
 
-        # پردازش هر تطبیق
-        for match in matches:
-            file_path = match.group(1).strip()  # مثال: tests/conftest.py
-            code_content = match.group(3).strip()  # محتوای بلوک کد
-
-            # ایجاد پوشه‌ها در صورت نیاز
-            file_dir = os.path.dirname(file_path)
-            if file_dir:
-                os.makedirs(os.path.join(output_dir, file_dir), exist_ok=True)
-
-            # نوشتن کد در فایل
-            full_file_path = os.path.join(output_dir, file_path)
-            with open(full_file_path, 'w', encoding='utf-8') as f:
-                f.write(code_content)
-            files_created.append(file_path)
-
-        if not files_created:
-            st.warning("هشدار: هیچ بلوک کد معتبری در متن ورودی یافت نشد.")
-            return None, []
-
-        # ایجاد آرشیو ZIP
-        zip_path = 'rfcbot_test_files.zip'
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in files_created:
-                zipf.write(os.path.join(output_dir, file_path), file_path)
-
-        return zip_path, files_created
-    except Exception as e:
-        st.error(f"خطا در پردازش ورودی: {str(e)}")
-        return None, []
-
-# تنظیمات برنامه Streamlit
-st.set_page_config(page_title="استخراج فایل‌های کد", page_icon="📦", layout="centered")
-
-# استایل‌های سفارشی
-st.markdown("""
-    <style>
-    .main-header { font-size: 2.5em; color: #FF4B4B; text-align: center; }
-    .sub-header { font-size: 1.5em; color: #333; }
-    .success-box { background-color: #e6ffed; padding: 10px; border-radius: 5px; }
-    .error-box { background-color: #ffe6e6; padding: 10px; border-radius: 5px; }
-    .stButton>button { background-color: #FF4B4B; color: white; border-radius: 5px; }
-    .stButton>button:hover { background-color: #e04343; }
-    </style>
-""", unsafe_allow_html=True)
-
-# سربرگ
-st.markdown('<div class="main-header">استخراج فایل‌های کد</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">متن یا فایل متنی حاوی بلوک‌های کد (مانند "File X: path/to/file") را وارد کنید</div>', unsafe_allow_html=True)
-
-# تب‌ها برای روش‌های ورودی
-tab1, tab2 = st.tabs(["متن را جای‌گذاری کنید", "فایل را آپلود کنید"])
-
-with tab1:
-    input_text = st.text_area("متن خود را اینجا جای‌گذاری کنید", height=300, help="مثال: File 1: tests/conftest.py\npython\nکد...")
-
-with tab2:
-    uploaded_file = st.file_uploader("یک فایل متنی (.txt) آپلود کنید", type=["txt"])
-    if uploaded_file:
-        input_text = uploaded_file.read().decode("utf-8")
-
-# دکمه پردازش
-if st.button("تولید فایل ZIP"):
-    if not input_text:
-        st.markdown('<div class="error-box">خطا: لطفاً متن وارد کنید یا فایلی آپلود کنید.</div>', unsafe_allow_html=True)
+        zip_buffer.seek(0)
+        st.success(f"{len(code_blocks)} بلوک کد استخراج شد و داخل فایل ZIP قرار گرفت.")
+        st.download_button("دانلود فایل ZIP", zip_buffer, "code_blocks.zip", "application/zip")
     else:
-        with st.spinner("در حال پردازش..."):
-            # پاکسازی فایل‌های قبلی
-            if os.path.exists("code_files"):
-                shutil.rmtree("code_files")
-            if os.path.exists("rfcbot_test_files.zip"):
-                os.remove("rfcbot_test_files.zip")
+        st.warning("هیچ بلوک کدی در فایل پیدا نشد.")
+````
 
-            # استخراج و فشرده‌سازی فایل‌ها
-            zip_path, files_created = extract_code_files(input_text)
-            
-            if zip_path and files_created:
-                st.markdown('<div class="success-box">فایل‌ها با موفقیت استخراج شدند!</div>', unsafe_allow_html=True)
-                st.write("**فایل‌های استخراج‌شده:**")
-                for file in files_created:
-                    st.write(f"- {file}")
-                
-                # ارائه دکمه دانلود
-                with open(zip_path, "rb") as f:
-                    st.download_button(
-                        label="دانلود فایل ZIP",
-                        data=f,
-                        file_name="rfcbot_test_files.zip",
-                        mime="application/zip"
-                    )
-            else:
-                st.markdown('<div class="error-box">خطا: هیچ کد معتبری در ورودی یافت نشد.</div>', unsafe_allow_html=True)
+📌 **نکته**: این کد فرض می‌کند که بلوک‌های کد با قالب Markdown (مثل `python یا `) در فایل مشخص شده‌اند. اگر ساختار دیگری دارد، لطفاً بگو تا تنظیمش کنم.
 
-# پاورقی
-st.markdown("---")
-st.markdown("ساخته‌شده با ❤️ با استفاده از Streamlit | برای تست RFCBot")
+آیا می‌خواهی نوع خاصی از کد (مثلاً فقط Python یا SQL) را فیلتر کنیم؟
