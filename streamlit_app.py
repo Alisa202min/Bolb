@@ -1,9 +1,6 @@
-# فایل را به نام app.py ذخیره کن
-
 import streamlit as st
 import zipfile
 import os
-import io
 
 st.set_page_config(page_title="خواندن فایل‌های .htm.txt", layout="wide")
 
@@ -12,8 +9,8 @@ def process_zip(zip_file):
     logs = []
 
     with zipfile.ZipFile(zip_file) as z:
-       file_list = [f for f in z.infolist() if f.filename.endswith(".htm.txt") and not f.is_dir()]
-
+        # فایل‌هایی که با .htm.txt پایان می‌یابند و دایرکتوری نیستند
+        file_list = [f for f in z.infolist() if f.filename.endswith(".htm.txt") and not f.is_dir()]
         logs.append(f"✅ تعداد فایل‌های یافت‌شده با پسوند .htm.txt: {len(file_list)}")
 
         for file_info in file_list:
@@ -35,7 +32,6 @@ def process_zip(zip_file):
                     output_lines.append(content.strip())
                     output_lines.append("---\n")
                     logs.append(f"✅ فایل با موفقیت پردازش شد.")
-
             except Exception as e:
                 logs.append(f"❌ خطا در خواندن فایل {file_info.filename}: {e}")
     
@@ -62,8 +58,8 @@ if uploaded_file:
         st.subheader("📜 گزارش مرحله‌به‌مرحله:")
         st.code(log_output, language="bash")
 
-        st.subheader("📝 خروجی نهایی:")
-        st.text_area("محتوای ترکیب‌شده", value=result_text, height=600)
+        st.subheader("📝 خروجی نهایی: محتوای دقیق فایل‌ها")
+        st.text_area("🔍 محتوای ترکیب‌شده فایل‌ها", value=result_text, height=600)
 
         st.download_button(
             label="⬇️ دانلود فایل خروجی",
