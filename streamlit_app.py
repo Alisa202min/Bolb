@@ -9,8 +9,8 @@ def process_zip(zip_file):
     logs = []
 
     with zipfile.ZipFile(zip_file) as z:
-        file_list = [f for f in z.infolist() if f.filename.endswith(".htm.txt") and not f.is_dir()]
-        logs.append(f"✅ تعداد فایل‌های یافت‌شده با پسوند .htm.txt: {len(file_list)}")
+        file_list = [f for f in z.infolist() if f.filename.endswith(".html.txt") and not f.is_dir()]
+        logs.append(f"✅ تعداد فایل‌های یافت‌شده با پسوند .html.txt: {len(file_list)}")
 
         for file_info in file_list:
             logs.append(f"\n🔹 پردازش فایل: {file_info.filename}")
