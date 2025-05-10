@@ -1,48 +1,74 @@
-# ذخیره این فایل به نام: app.py
+# فایل را به نام app.py ذخیره کن
 
 import streamlit as st
 import zipfile
 import os
 import io
 
+st.set_page_config(page_title="خواندن فایل‌های .htm.txt", layout="wide")
+
 def process_zip(zip_file):
     output_lines = []
+    logs = []
+
     with zipfile.ZipFile(zip_file) as z:
-        for file_info in z.infolist():
-            if file_info.filename.endswith(".htm.txt"):
+        file_list = [f for f in z.infolist() if f.filename.endswith(".htm.txt")]
+        logs.append(f"✅ تعداد فایل‌های یافت‌شده با پسوند .htm.txt: {len(file_list)}")
+
+        for file_info in file_list:
+            logs.append(f"\n🔹 پردازش فایل: {file_info.filename}")
+            try:
                 with z.open(file_info) as f:
-                    try:
-                        content_bytes = f.read()
-                        content = content_bytes.decode("utf-8")
-                        lines = content.splitlines()
-                        verified_line_count = content.count('\n') + 1 if content else 0
-                        if len(lines) != verified_line_count:
-                            st.warning(f"⚠ تعداد خطوط ناسازگار در فایل: {file_info.filename}")
-                            continue
-                        clean_filename = os.path.basename(file_info.filename)[:-4]  # حذف .txt
-                        output_lines.append(f"{clean_filename}")
-                        output_lines.append("---")
-                        output_lines.append(content.strip())
-                        output_lines.append("---\n")
-                    except Exception as e:
-                        st.error(f"خطا در فایل {file_info.filename}: {e}")
+                    content_bytes = f.read()
+                    content = content_bytes.decode("utf-8")
+                    lines = content.splitlines()
+                    verified_line_count = content.count('\n') + 1 if content else 0
 
-    return '\n'.join(output_lines)
+                    if len(lines) != verified_line_count:
+                        logs.append(f"⚠ هشدار: تعداد خطوط با شمارش واقعی مطابقت ندارد! ({len(lines)} vs {verified_line_count})")
+                        continue
+
+                    clean_filename = os.path.basename(file_info.filename)[:-4]  # حذف .txt
+                    output_lines.append(f"{clean_filename}")
+                    output_lines.append("---")
+                    output_lines.append(content.strip())
+                    output_lines.append("---\n")
+                    logs.append(f"✅ فایل با موفقیت پردازش شد.")
+
+            except Exception as e:
+                logs.append(f"❌ خطا در خواندن فایل {file_info.filename}: {e}")
+    
+    return '\n'.join(output_lines), '\n'.join(logs)
 
 
-st.title("ادغام محتوای فایل‌های .htm.txt")
+st.title("📄 ابزار ترکیب فایل‌های .htm.txt از فایل ZIP")
 
-uploaded_file = st.file_uploader("یک فایل ZIP شامل فایل‌های `.htm.txt` آپلود کنید", type="zip")
+st.markdown("""
+این ابزار فایل‌های متنی با پسوند `.htm.txt` را از یک فایل ZIP می‌خواند و آن‌ها را به فرمت دلخواه شما ترکیب می‌کند.
+
+- نام فایل با پسوند `.txt` حذف می‌شود.
+- محتوای فایل با دو خط `---` جدا می‌شود.
+- در پایین صفحه خروجی را می‌بینید.
+""")
+
+uploaded_file = st.file_uploader("📁 لطفاً فایل ZIP را آپلود کنید", type="zip")
 
 if uploaded_file:
-    with st.spinner("در حال پردازش فایل‌ها..."):
-        result_text = process_zip(uploaded_file)
-        st.success("پردازش انجام شد ✅")
+    with st.spinner("⏳ در حال پردازش فایل‌ها... لطفاً صبر کنید"):
+        result_text, log_output = process_zip(uploaded_file)
+        st.success("✅ پردازش با موفقیت انجام شد!")
+
+        st.subheader("📜 گزارش مرحله‌به‌مرحله:")
+        st.code(log_output, language="bash")
+
+        st.subheader("📝 خروجی نهایی:")
+        st.text_area("محتوای ترکیب‌شده", value=result_text, height=600)
 
         st.download_button(
-            label="دانلود خروجی به صورت فایل متنی",
+            label="⬇️ دانلود فایل خروجی",
             data=result_text,
-            file_name="output.txt",
+            file_name="combined_output.txt",
             mime="text/plain"
         )
-        st.text_area("پیش‌نمایش خروجی", value=result_text[:3000], height=400)
+else:
+    st.info("🔺 ابتدا یک فایل ZIP آپلود کنید که شامل فایل‌های `.htm.txt` باشد.")
