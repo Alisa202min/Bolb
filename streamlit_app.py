@@ -20,11 +20,12 @@ def process_zip(zip_file):
                     content_bytes = f.read()
                     content = content_bytes.decode("utf-8")
                     lines = content.splitlines()
-                    verified_line_count = content.count('\n') + 1 if content else 0
+					verified_line_count = content.count('\n') + 1 if content else 0
+					
+					if len(lines) != verified_line_count:
+					    logs.append(f"⚠ هشدار: تعداد خطوط با شمارش واقعی مطابقت ندارد! ({len(lines)} vs {verified_line_count})")
+					    continue
 
-                    if len(lines) != verified_line_count:
-                        logs.append(f"⚠ هشدار: تعداد خطوط با شمارش واقعی مطابقت ندارد! ({len(lines)} vs {verified_line_count})")
-                        continue
 
                     clean_filename = os.path.basename(file_info.filename)[:-4]  # حذف .txt
                     output_lines.append(f"{clean_filename}")
