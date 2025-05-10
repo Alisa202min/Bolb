@@ -9,7 +9,6 @@ def process_zip(zip_file):
     logs = []
 
     with zipfile.ZipFile(zip_file) as z:
-        # فایل‌هایی که با .htm.txt پایان می‌یابند و دایرکتوری نیستند
         file_list = [f for f in z.infolist() if f.filename.endswith(".htm.txt") and not f.is_dir()]
         logs.append(f"✅ تعداد فایل‌های یافت‌شده با پسوند .htm.txt: {len(file_list)}")
 
@@ -20,12 +19,10 @@ def process_zip(zip_file):
                     content_bytes = f.read()
                     content = content_bytes.decode("utf-8")
                     lines = content.splitlines()
-					verified_line_count = content.count('\n') + 1 if content else 0
-					
-					if len(lines) != verified_line_count:
-					    logs.append(f"⚠ هشدار: تعداد خطوط با شمارش واقعی مطابقت ندارد! ({len(lines)} vs {verified_line_count})")
-					    continue
+                    verified_line_count = content.count('\n') + 1 if content and not content.endswith('\n') else content.count('\n')
 
+                    if len(lines) != verified_line_count:
+                        logs.append(f"⚠ (اطلاع): اختلاف احتمالی در شمارش خطوط (splitlines: {len(lines)} vs count('\\n'): {verified_line_count})")
 
                     clean_filename = os.path.basename(file_info.filename)[:-4]  # حذف .txt
                     output_lines.append(f"{clean_filename}")
@@ -35,9 +32,8 @@ def process_zip(zip_file):
                     logs.append(f"✅ فایل با موفقیت پردازش شد.")
             except Exception as e:
                 logs.append(f"❌ خطا در خواندن فایل {file_info.filename}: {e}")
-    
-    return '\n'.join(output_lines), '\n'.join(logs)
 
+    return '\n'.join(output_lines), '\n'.join(logs)
 
 st.title("📄 ابزار ترکیب فایل‌های .htm.txt از فایل ZIP")
 
