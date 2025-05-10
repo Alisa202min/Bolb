@@ -103,4 +103,25 @@ if st.button("تولید فایل ZIP"):
                 os.remove("rfcbot_test_files.zip")
 
             # استخراج و فشرده‌سازی فایل‌ها
-            zip_path, files_created = extract_code_files
+            zip_path, files_created = extract_code_files(input_text)
+            
+            if zip_path and files_created:
+                st.markdown('<div class="success-box">فایل‌ها با موفقیت استخراج شدند!</div>', unsafe_allow_html=True)
+                st.write("**فایل‌های استخراج‌شده:**")
+                for file in files_created:
+                    st.write(f"- {file}")
+                
+                # ارائه دکمه دانلود
+                with open(zip_path, "rb") as f:
+                    st.download_button(
+                        label="دانلود فایل ZIP",
+                        data=f,
+                        file_name="rfcbot_test_files.zip",
+                        mime="application/zip"
+                    )
+            else:
+                st.markdown('<div class="error-box">خطا: هیچ کد معتبری در ورودی یافت نشد.</div>', unsafe_allow_html=True)
+
+# پاورقی
+st.markdown("---")
+st.markdown("ساخته‌شده با ❤️ با استفاده از Streamlit | برای تست RFCBot")
