@@ -23,8 +23,8 @@ def extract_code_files(input_text, output_dir="code_files"):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        # الگوی منظم برای تطبیق عنوان‌ها و بلوک‌های کد
-        title_pattern = r'File \d+: ([^\n]+)\n(\w+)\n([\s\S]*?)(?=\nFile \d+:|$|\nDownload:)'
+        # الگوی منظم بهبود‌یافته برای تطبیق عنوان‌ها و بلوک‌های کد
+        title_pattern = r'File \d+: ([^\n]+)\n(\w+)\n([\s\S]*?)(?=\n(?:File \d+:|Download:|\Z))'
         matches = re.finditer(title_pattern, input_text)
 
         files_created = []
